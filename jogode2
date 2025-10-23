@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Desafio Cognitivo: Ícaro vs Ian</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;display:flex;align-items:flex-start;justify-content:center;color:#222;}
+  .container{width:100%;max-width:1150px;background:rgba(255,255,255,0.96);border-radius:20px;box-shadow:0 20px 40px rgba(0,0,0,0.25);overflow:hidden;}
+  header{padding:28px;text-align:center;background:linear-gradient(135deg,#ff6b6b,#4ecdc4);color:#fff;}
+  header h1{font-size:1.9rem;margin-bottom:6px;letter-spacing:0.2px}
+  header p{opacity:0.95}
+  .game-info{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:18px;background:#f7f8fa;border-bottom:1px solid #e9ecef}
+  .player-stats{display:flex;flex-direction:column;align-items:center;min-width:140px}
+  .player-name{font-weight:700}
+  .icaro{color:#ff6b6b}
+  .ian{color:#4ecdc4}
+  .score{font-size:1.6rem;font-weight:800;margin-top:6px}
+  .mid-info{text-align:center;flex:1;max-width:420px}
+  .timer{font-weight:800;font-size:1.2rem;color:#333}
+  .round-display{font-size:0.95rem;color:#555;margin-bottom:8px}
+  .progress-bar{height:10px;background:#e6e6e6;border-radius:999px;overflow:hidden;margin-top:10px}
+  .progress{height:100%;width:0%;background:linear-gradient(90deg,#4ecdc4,#667eea);transition:width .3s linear}
+  .game-area{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:28px}
+  .player-area{background:linear-gradient(180deg,#fff,#fbfbfd);padding:20px;border-radius:14px;border:3px solid transparent;box-shadow:0 8px 20px rgba(0,0,0,0.06)}
+  .icaro-area{border-color:#ffb3b3}
+  .ian-area{border-color:#bff0ea}
+  .player-status{display:flex;justify-content:space-between;margin-bottom:12px;font-weight:700}
+  .question{font-size:1.15rem;margin-bottom:14px;min-height:56px}
+  .options{display:flex;flex-direction:column;gap:10px}
+  .option{background:#fff;border:2px solid #e8e8e8;padding:12px;border-radius:10px;cursor:pointer;transition:transform .14s ease,box-shadow .14s ease}
+  .option:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,0,0,0.08)}
+  .option.selected{font-weight:700}
+  .option.selected.icaro{background:#ff6b6b;color:#fff;border-color:#ff6b6b}
+  .option.selected.ian{background:#4ecdc4;color:#fff;border-color:#4ecdc4}
+  .feedback{margin-top:12px;padding:10px;border-radius:8px;font-weight:700;display:none}
+  .correct-feedback{background:#e8f5e9;color:#1b5e20}
+  .incorrect-feedback{background:#ffebee;color:#b71c1c}
+  .controls{display:flex;justify-content:center;gap:16px;padding:18px;background:#f7f8fa;border-top:1px solid #e9ecef}
+  .btn{background:linear-gradient(90deg,#667eea,#764ba2);color:#fff;border:none;padding:12px 18px;border-radius:999px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(102,126,234,0.18)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  .results-screen{display:none;padding:28px;text-align:center}
+  .final-results{background:#fff;padding:20px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.06);margin-top:18px}
+  .winner-announcement{padding:16px;border-radius:10px;font-weight:800;margin-top:14px}
+  .icaro-winner{background:linear-gradient(135deg,#ff6b6b,#ff8e8e);color:#fff}
+  .ian-winner{background:linear-gradient(135deg,#4ecdc4,#88d8d8);color:#fff}
+  .draw{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+  @media(max-width:820px){.game-area{grid-template-columns:1fr}.game-info{flex-direction:column;gap:10px;align-items:stretch}.mid-info{max-width:none}}
+</style>
+</head>
+<body>
+  <div class="container" role="application" aria-label="Jogo Ícaro vs Ian">
+    <header>
+      <h1>Desafio Cognitivo</h1>
+      <p>Ícaro vs Ian — responda rápido e some pontos!</p>
+    </header>
+
+    <div class="game-info">
+      <div class="player-stats">
+        <div class="player-name icaro">Ícaro</div>
+        <div class="score" id="icaro-score">0</div>
+      </div>
+
+      <div class="mid-info">
+        <div class="round-display" id="round-display">Rodada 1 • Pergunta 1</div>
+        <div class="timer" id="timer">40s</div>
+        <div class="progress-bar" aria-hidden="true"><div class="progress" id="progress"></div></div>
+      </div>
+
+      <div class="player-stats">
+        <div class="player-name ian">Ian</div>
+        <div class="score" id="ian-score">0</div>
+      </div>
+    </div>
+
+    <div class="game-area" id="game-area">
+      <section class="player-area icaro-area" aria-labelledby="icaro-label">
+        <div class="player-status"><span id="icaro-label">Ícaro</span><span id="icaro-status" class="waiting">Aguardando...</span></div>
+        <div class="question" id="icaro-question">Carregando...</div>
+        <div class="options" id="icaro-options" role="list"></div>
+        <div class="feedback correct-feedback" id="icaro-correct">🎉 Correto! +10</div>
+        <div class="feedback incorrect-feedback" id="icaro-incorrect">❌ Errado</div>
+      </section>
+
+      <section class="player-area ian-area" aria-labelledby="ian-label">
+        <div class="player-status"><span id="ian-label">Ian</span><span id="ian-status" class="waiting">Aguardando...</span></div>
+        <div class="question" id="ian-question">Carregando...</div>
+        <div class="options" id="ian-options" role="list"></div>
+        <div class="feedback correct-feedback" id="ian-correct">🎉 Correto! +10</div>
+        <div class="feedback incorrect-feedback" id="ian-incorrect">❌ Errado</div>
+      </section>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="start-btn">Iniciar Jogo</button>
+      <button class="btn" id="next-round-btn" disabled>Próxima Pergunta</button>
+      <button class="btn" id="restart-btn" style="display:none">Reiniciar</button>
+    </div>
+
+    <div class="results-screen" id="results-screen" aria-live="polite">
+      <h2>🏁 Resultado Final</h2>
+      <div class="final-results">
+        <div style="font-weight:800;font-size:1.2rem">Ícaro: <span id="final-icaro">0</span> — Ian: <span id="final-ian">0</span></div>
+        <div id="winner" class="winner-announcement" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- sons opcionais (CDN público) -->
+  <audio id="s-correct" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_bf7c7a10f1.mp3?filename=correct-2-46134.mp3"></audio>
+  <audio id="s-wrong" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_cadbbf43f0.mp3?filename=wrong-buzzer-6268.mp3"></audio>
+  <audio id="s-win" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_b3aa01da7c.mp3?filename=success-fanfare-trumpets-6185.mp3"></audio>
+
+<script>
+/*
+  Regras implementadas:
+  - 3 rodadas, 5 perguntas cada (pode ajustar abaixo se quiser)
+  - Cada pergunta dá 40 segundos (timer por pergunta)
+  - Ambos jogadores têm perguntas independentes (um para Ícaro, outro para Ian)
+  - Só avança para a próxima pergunta quando:
+      -> ambos responderam
+      OR -> o tempo acabou (quem não respondeu não recebe pontos)
+  - Remove porcentagem/fração: só usa + - × ÷ (divisões com resultado inteiro)
+  - Limpa mensagens de CORRETO/ERRADO antes de cada pergunta
+*/
+
+const ROUNDS = 3;            // número de rodadas
+const Q_PER_ROUND = 5;       // perguntas por rodada
+const TIME_PER_QUESTION = 40; // segundos
+
+// Banco de perguntas (3 rodadas x 5 perguntas), somente operações básicas.
+// Cada item: { icaro: {q, options, correct}, ian: {...} }
+// As divisões foram feitas para ter resultado inteiro.
+const gameRounds = [
+  // RODADA 1
+  [
+    { icaro: { q: "8 + 7 = ?", options: ["14","15","16","17"], correct: 1 },
+      ian:  { q: "12 - 5 = ?", options: ["6","7","8","9"], correct: 1 } },
+    { icaro: { q: "6 × 7 = ?", options: ["42","36","48","40"], correct: 0 },
+      ian:  { q: "9 × 5 = ?", options: ["45","40","50","35"], correct: 0 } },
+    { icaro: { q: "48 ÷ 6 = ?", options: ["6","7","8","9"], correct: 2 },
+      ian:  { q: "36 ÷ 9 = ?", options: ["3","4","6","9"], correct: 1 } },
+    { icaro: { q: "20 - 9 = ?", options: ["9","10","11","12"], correct: 2 },
+      ian:  { q: "7 + 13 = ?", options: ["18","19","20","21"], correct: 0 } },
+    { icaro: { q: "5 × 8 = ?", options: ["35","40","45","50"], correct: 1 },
+      ian:  { q: "14 + 6 = ?", options: ["18","19","20","21"], correct: 2 } }
+  ],
+  // RODADA 2
+  [
+    { icaro: { q: "15 + 6 = ?", options: ["20","21","22","23"], correct: 1 },
+      ian:  { q: "18 - 7 = ?", options: ["9","10","11","12"], correct: 2 } },
+    { icaro: { q: "11 × 3 = ?", options: ["33","31","36","30"], correct: 0 },
+      ian:  { q: "7 × 6 = ?", options: ["42","36","40","48"], correct: 0 } },
+    { icaro: { q: "56 ÷ 8 = ?", options: ["6","7","8","9"], correct: 1 },
+      ian:  { q: "81 ÷ 9 = ?", options: ["7","8","9","10"], correct: 2 } },
+    { icaro: { q: "25 - 8 = ?", options: ["16","17","18","19"], correct: 1 },
+      ian:  { q: "13 + 9 = ?", options: ["21","22","23","24"], correct: 2 } },
+    { icaro: { q: "4 × 9 = ?", options: ["32","34","36","38"], correct: 2 },
+      ian:  { q: "45 ÷ 5 = ?", options: ["8","9","10","11"], correct: 2 } }
+  ],
+  // RODADA 3
+  [
+    { icaro: { q: "23 + 12 = ?", options: ["34","35","36","37"], correct: 2 },
+      ian:  { q: "30 - 14 = ?", options: ["14","15","16","17"], correct: 2 } },
+    { icaro: { q: "8 × 8 = ?", options: ["56","60","64","68"], correct: 2 },
+      ian:  { q: "9 × 7 = ?", options: ["54","61","63","65"], correct: 2 } },
+    { icaro: { q: "72 ÷ 8 = ?", options: ["8","9","10","11"], correct: 1 },
+      ian:  { q: "54 ÷ 6 = ?", options: ["8","9","10","11"], correct: 1 } },
+    { icaro: { q: "19 + 6 = ?", options: ["24","25","26","27"], correct: 1 },
+      ian:  { q: "28 - 9 = ?", options: ["17","18","19","20"], correct: 0 } },
+    { icaro: { q: "6 × 5 = ?", options: ["25","30","35","40"], correct: 1 },
+      ian:  { q: "100 ÷ 10 = ?", options: ["8","9","10","11"], correct: 2 } }
+  ]
+];
+
+// estado do jogo
+let currentRound = 0;
+let currentQuestion = 0; // índice dentro da rodada
+let icaroScore = 0;
+let ianScore = 0;
+let timer = TIME_PER_QUESTION;
+let timerInterval = null;
+let icaroAnswered = false;
+let ianAnswered = false;
+let gameActive = false; // se está no meio de uma pergunta
+
+// elementos
+const icaroQuestionEl = document.getElementById('icaro-question');
+const icaroOptionsEl = document.getElementById('icaro-options');
+const ianQuestionEl = document.getElementById('ian-question');
+const ianOptionsEl = document.getElementById('ian-options');
+const icaroScoreEl = document.getElementById('icaro-score');
+const ianScoreEl = document.getElementById('ian-score');
+const timerEl = document.getElementById('timer');
+const progressEl = document.getElementById('progress');
+const roundDisplay = document.getElementById('round-display');
+const startBtn = document.getElementById('start-btn');
+const nextBtn = document.getElementById('next-round-btn');
+const restartBtn = document.getElementById('restart-btn');
+const resultsScreen = document.getElementById('results-screen');
+const finalIcaro = document.getElementById('final-icaro');
+const finalIan = document.getElementById('final-ian');
+const winnerEl = document.getElementById('winner');
+
+// feedback elements
+const icaroCorrectEl = document.getElementById('icaro-correct');
+const icaroIncorrectEl = document.getElementById('icaro-incorrect');
+const ianCorrectEl = document.getElementById('ian-correct');
+const ianIncorrectEl = document.getElementById('ian-incorrect');
+// status labels
+const icaroStatus = document.getElementById('icaro-status');
+const ianStatus = document.getElementById('ian-status');
+
+// sons (opcionais)
+const sCorrect = document.getElementById('s-correct');
+const sWrong = document.getElementById('s-wrong');
+const sWin = document.getElementById('s-win');
+
+function resetGameState() {
+  currentRound = 0;
+  currentQuestion = 0;
+  icaroScore = 0;
+  ianScore = 0;
+  updateScores();
+  resultsScreen.style.display = 'none';
+  document.getElementById('game-area').style.display = '';
+  startBtn.style.display = '';
+  restartBtn.style.display = 'none';
+  nextBtn.disabled = true;
+  updateRoundLabel();
+}
+
+function updateRoundLabel() {
+  const totalQ = gameRounds[currentRound].length;
+  roundDisplay.textContent = `Rodada ${currentRound + 1} • Pergunta ${currentQuestion + 1} de ${totalQ}`;
+}
+
+function updateScores() {
+  icaroScoreEl.textContent = icaroScore;
+  ianScoreEl.textContent = ianScore;
+}
+
+function startGame() {
+  resetRoundState();
+  resetGameState();
+  startBtn.style.display = 'none';
+  restartBtn.style.display = '';
+  // inicia a primeira pergunta da rodada atual
+  loadQuestion();
+}
+
+function resetRoundState() {
+  timer = TIME_PER_QUESTION;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  icaroAnswered = false;
+  ianAnswered = false;
+  gameActive = false;
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timer = TIME_PER_QUESTION;
+  timerEl.textContent = `${timer}s`;
+  progressEl.style.width = '0%';
+  timerInterval = setInterval(() => {
+    timer--;
+    timerEl.textContent = `${timer}s`;
+    // progress mostra tempo decorrido
+    const pct = ((TIME_PER_QUESTION - timer) / TIME_PER_QUESTION) * 100;
+    progressEl.style.width = `${pct}%`;
+    if (timer <= 0) {
+      clearInterval(timerInterval);
+      // se o tempo acabar e ainda houver quem não respondeu, consideramos sem resposta (sem pontos)
+      finalizeQuestionByTimeout();
+    }
+  }, 1000);
+}
+
+function clearFeedbacks() {
+  [icaroCorrectEl, icaroIncorrectEl, ianCorrectEl, ianIncorrectEl].forEach(el => {
+    el.style.display = 'none';
+  });
+}
+
+function loadQuestion() {
+  // Se terminou a rodada
+  const round = gameRounds[currentRound];
+  if (!round) return;
+  if (currentQuestion >= round.length) {
+    // rodada concluída => avançar para próxima rodada ou finalizar jogo
+    finishRound();
+    return;
+  }
+
+  // Reset flags e feedbacks
+  clearFeedbacks();
+  icaroAnswered = false;
+  ianAnswered = false;
+  gameActive = true;
+  icaroStatus.textContent = 'Responda!';
+  icaroStatus.style.color = '#2e7d32';
+  ianStatus.textContent = 'Responda!';
+  ianStatus.style.color = '#2e7d32';
+
+  // Carregar pergunta atual
+  const qData = round[currentQuestion];
+  // Ícaro
+  icaroQuestionEl.textContent = qData.icaro.question || qData.icaro.q;
+  icaroOptionsEl.innerHTML = '';
+  qData.icaro.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.textContent = opt;
+    div.setAttribute('role', 'button');
+    div.onclick = () => handleAnswer('icaro', i);
+    icaroOptionsEl.appendChild(div);
+  });
+
+  // Ian
+  ianQuestionEl.textContent = qData.ian.question || qData.ian.q;
+  ianOptionsEl.innerHTML = '';
+  qData.ian.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.textContent = opt;
+    div.setAttribute('role', 'button');
+    div.onclick = () => handleAnswer('ian', i);
+    ianOptionsEl.appendChild(div);
+  });
+
+  // iniciar timer para a pergunta atual
+  startTimer();
+  updateRoundLabel();
+  nextBtn.disabled = true;
+}
+
+function handleAnswer(player, selectedIndex) {
+  if (!gameActive) return;
+
+  // impedir duplo clique
+  if (player === 'icaro' && icaroAnswered) return;
+  if (player === 'ian' && ianAnswered) return;
+
+  const round = gameRounds[currentRound];
+  const qData = round[currentQuestion];
+  const playerData = (player === 'icaro') ? qData.icaro : qData.ian;
+  const correctIndex = playerData.correct;
+
+  // marcar visualmente
+  const container = (player === 'icaro') ? icaroOptionsEl : ianOptionsEl;
+  const options = Array.from(container.querySelectorAll('.option'));
+  options.forEach(o => { o.style.pointerEvents = 'none'; }); // bloquear novas escolhas
+  options[selectedIndex].classList.add('selected', player === 'icaro' ? 'icaro' : 'ian');
+
+  // limpar feedback anterior (garantia)
+  clearFeedbacks();
+
+  // conferir acerto
+  const isCorrect = selectedIndex === correctIndex;
+  if (isCorrect) {
+    // som (se disponível)
+    try { sCorrect.currentTime = 0; sCorrect.play(); } catch(e){}
+    if (player === 'icaro') {
+      icaroScore += 10;
+      icaroCorrectEl.style.display = 'block';
+    } else {
+      ianScore += 10;
+      ianCorrectEl.style.display = 'block';
+    }
+  } else {
+    try { sWrong.currentTime = 0; sWrong.play(); } catch(e){}
+    if (player === 'icaro') icaroIncorrectEl.style.display = 'block';
+    else ianIncorrectEl.style.display = 'block';
+  }
+
+  // atualizar placar e status
+  updateScores();
+  if (player === 'icaro') {
+    icaroAnswered = true;
+    icaroStatus.textContent = 'Respondido';
+    icaroStatus.style.color = '#555';
+  } else {
+    ianAnswered = true;
+    ianStatus.textContent = 'Respondido';
+    ianStatus.style.color = '#555';
+  }
+
+  // Se ambos responderam, avançamos (limpando feedbacks antes da próxima)
+  if (icaroAnswered && ianAnswered) {
+    // pará o timer e avança após breve delay mostrando resultados
+    clearInterval(timerInterval);
+    gameActive = false;
+    setTimeout(() => {
+      // limpar mensagens de "Correto/Errado" antes de próxima pergunta (conforme pedido)
+      clearFeedbacks();
+      // avançar pergunta
+      currentQuestion++;
+      // reset visual (removendo selected)
+      options.forEach(o => o.classList.remove('selected', 'icaro', 'ian'));
+      Array.from(ianOptionsEl.querySelectorAll('.option')).forEach(o => o.classList.remove('selected', 'icaro', 'ian'));
+      loadQuestion();
+    }, 1000); // 1s para o jogador ver o feedback
+  }
+}
+
+function finalizeQuestionByTimeout() {
+  // o tempo acabou: quem não respondeu fica sem ponto; mostramos feedbacks apropriados e avançamos
+  gameActive = false;
+  // bloquear opções restantes
+  Array.from(icaroOptionsEl.querySelectorAll('.option')).forEach(o => o.style.pointerEvents = 'none');
+  Array.from(ianOptionsEl.querySelectorAll('.option')).forEach(o => o.style.pointerEvents = 'none');
+
+  // Exibir "Errado" para quem não respondeu (ou manter o que já foi mostrado)
+  if (!icaroAnswered) {
+    icaroIncorrectEl.style.display = 'block';
+    icaroStatus.textContent = 'Sem resposta';
+    icaroStatus.style.color = '#b71c1c';
+  }
+  if (!ianAnswered) {
+    ianIncorrectEl.style.display = 'block';
+    ianStatus.textContent = 'Sem resposta';
+    ianStatus.style.color = '#b71c1c';
+  }
+
+  // Aguarda um instante e avança para a próxima pergunta
+  setTimeout(() => {
+    // limpar feedbacks antes de carregar próxima
+    clearFeedbacks();
+    // avançar
+    currentQuestion++;
+    // remover seleções visuais (se houver)
+    Array.from(icaroOptionsEl.querySelectorAll('.option')).forEach(o => { o.classList.remove('selected','icaro','ian'); });
+    Array.from(ianOptionsEl.querySelectorAll('.option')).forEach(o => { o.classList.remove('selected','icaro','ian'); });
+    // reset status
+    icaroAnswered = false; ianAnswered = false;
+    icaroStatus.textContent = 'Aguardando...'; icaroStatus.style.color = '#888';
+    ianStatus.textContent = 'Aguardando...'; ianStatus.style.color = '#888';
+    // carregar próxima pergunta ou finalizar rodada
+    loadQuestion();
+  }, 900);
+}
+
+function finishRound() {
+  // terminou as perguntas da rodada atual
+  // se houver próxima rodada, preparar para ela; se não, mostrar resultados finais
+  currentQuestion = 0;
+  currentRound++;
+  if (currentRound < ROUNDS && currentRound < gameRounds.length) {
+    // permite o jogador avançar manualmente para a próxima rodada (ou podemos iniciar automático)
+    nextBtn.disabled = false;
+    nextBtn.onclick = () => {
+      nextBtn.disabled = true;
+      loadQuestion();
+    };
+  } else {
+    // fim do jogo
+    endGame();
+  }
+}
+
+function endGame() {
+  clearInterval(timerInterval);
+  gameActive = false;
+  // mostrar resultados finais
+  document.getElementById('game-area').style.display = 'none';
+  resultsScreen.style.display = 'block';
+  finalIcaro.textContent = icaroScore;
+  finalIan.textContent = ianScore;
+  // anúncio do vencedor
+  if (icaroScore > ianScore) {
+    winnerEl.textContent = '🎉 Ícaro é o vencedor!';
+    winnerEl.className = 'winner-announcement icaro-winner';
+  } else if (ianScore > icaroScore) {
+    winnerEl.textContent = '🎉 Ian é o vencedor!';
+    winnerEl.className = 'winner-announcement ian-winner';
+  } else {
+    winnerEl.textContent = '🤝 Empate!';
+    winnerEl.className = 'winner-announcement draw';
+  }
+  try { sWin.currentTime = 0; sWin.play(); } catch(e){}
+  // permitir reiniciar
+  restartBtn.onclick = () => {
+    currentRound = 0;
+    currentQuestion = 0;
+    icaroScore = 0;
+    ianScore = 0;
+    updateScores();
+    resultsScreen.style.display = 'none';
+    document.getElementById('game-area').style.display = '';
+    startBtn.style.display = '';
+    restartBtn.style.display = 'none';
+    roundDisplay.textContent = 'Rodada 1 • Pergunta 1';
+  };
+}
+
+// botões
+startBtn.onclick = () => {
+  // reforço: garantir que temos rounds definidos e que ROUNDS não excede o banco
+  if (gameRounds.length === 0) {
+    alert('Sem perguntas disponíveis.');
+    return;
+  }
+  // ajustar ROUNDS se o banco tiver menos
+  if (ROUNDS > gameRounds.length) {
+    console.warn('ROUNDS > gameRounds.length — ajustando ROUNDS para o tamanho do banco.');
+    // nothing else, game will end quando rounds efetivas acabarem
+  }
+  // iniciar primeira pergunta da rodada 0
+  currentRound = 0;
+  currentQuestion = 0;
+  icaroScore = 0; ianScore = 0;
+  updateScores();
+  loadQuestion();
+  startBtn.style.display = 'none';
+  restartBtn.style.display = '';
+};
+
+restartBtn.onclick = () => {
+  clearInterval(timerInterval);
+  resetGameState();
+  roundDisplay.textContent = 'Rodada 1 • Pergunta 1';
+};
+
+// inicialização
+resetGameState();
+
+</script>
+</body>
+</html>
